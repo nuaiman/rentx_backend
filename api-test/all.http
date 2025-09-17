@@ -1,0 +1,251 @@
+### User Signup
+POST http://localhost:8080/signup
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+# {
+#   "message": "User created."
+# }
+
+### User Login
+POST http://localhost:8080/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+# {
+#   "message": "Logged in.",
+#   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NTc5Njc5MzksImlkIjoxfQ.FDtn0i_rLzPN511bys_D2X96O-eiG967UqKwDhhTqSI"
+# }
+
+### Create Category
+POST http://localhost:8080/category
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NTc5Njc5MzksImlkIjoxfQ.FDtn0i_rLzPN511bys_D2X96O-eiG967UqKwDhhTqSI
+Content-Type: application/json
+
+{
+  "name": "Tableware"
+}
+
+# {
+#   "id": 1,
+#   "name": "Electronics"
+# }
+
+### Update Category
+PUT http://localhost:8080/category/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NTc5Njc5MzksImlkIjoxfQ.FDtn0i_rLzPN511bys_D2X96O-eiG967UqKwDhhTqSI
+Content-Type: application/json
+
+{
+  "name": "Updated Electronics"
+}
+
+# {
+#   "id": 1,
+#   "name": "Updated Electronics"
+# }
+
+### Delete Category
+DELETE http://localhost:8080/category/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NTc5Njc5MzksImlkIjoxfQ.FDtn0i_rLzPN511bys_D2X96O-eiG967UqKwDhhTqSI
+
+# {
+#   "message": "Deleted"
+# }
+
+### List Categories
+GET http://localhost:8080/category
+
+# [
+#   {
+#     "id": 2,
+#     "name": "Electronics"
+#   }
+# ]
+
+### Create Post
+POST http://localhost:8080/posts
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NTc5Njc5MzksImlkIjoxfQ.FDtn0i_rLzPN511bys_D2X96O-eiG967UqKwDhhTqSI
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "name": "iPhone 16",
+  "description": "Latest Apple iPhone",
+  "price": 1500,
+  "imageUrl": "https://images.pexels.com/photos/788946/pexels-photo-788946.jpeg"
+}
+
+# {
+#   "id": 1,
+#   "userId": 1,
+#   "categoryId": 2,
+#   "name": "iPhone 15",
+#   "description": "Latest Apple iPhone",
+#   "price": 1200,
+#   "imageUrl": "https://images.pexels.com/photos/788946/pexels-photo-788946.jpeg"
+# }
+
+### Update Post
+PUT http://localhost:8080/posts/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NTc5Njc5MzksImlkIjoxfQ.FDtn0i_rLzPN511bys_D2X96O-eiG967UqKwDhhTqSI
+Content-Type: application/json
+
+{
+  "categoryId": 2,
+  "name": "iPhone 15 Pro",
+  "description": "Updated Apple iPhone",
+  "price": 1500,
+  "imageUrl": "https://images.pexels.com/photos/788946/pexels-photo-788946.jpeg"
+}
+
+# {
+#   "id": 1,
+#   "userId": 0,
+#   "categoryId": 2,
+#   "name": "iPhone 15 Pro",
+#   "description": "Updated Apple iPhone",
+#   "price": 1500,
+#   "imageUrl": "https://images.pexels.com/photos/788946/pexels-photo-788946.jpeg"
+# }
+
+### Delete Post
+DELETE http://localhost:8080/posts/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NTc5Njc5MzksImlkIjoxfQ.FDtn0i_rLzPN511bys_D2X96O-eiG967UqKwDhhTqSI
+
+# {
+#   "message": "Post deleted"
+# }
+
+### Get Post by ID
+GET http://localhost:8080/posts/2
+
+# {
+#   "id": 2,
+#   "userId": 1,
+#   "categoryId": 2,
+#   "name": "iPhone 15",
+#   "description": "Latest Apple iPhone",
+#   "price": 1200,
+#   "imageUrl": "https://images.pexels.com/photos/788946/pexels-photo-788946.jpeg"
+# }
+
+### List Posts
+GET http://localhost:8080/posts
+
+# [
+#   {
+#     "id": 2,
+#     "userId": 1,
+#     "categoryId": 2,
+#     "name": "iPhone 15",
+#     "description": "Latest Apple iPhone",
+#     "price": 1200,
+#     "imageUrl": "https://images.pexels.com/photos/788946/pexels-photo-788946.jpeg"
+#   }
+# ]
+
+### Create Order
+POST http://localhost:8080/orders
+Content-Type: application/json
+
+{
+  "customer": "John Doe",
+  "phone": "+123456789",
+  "address": "123 Main Street",
+  "items": [
+    { "postId": 1, "quantity": 2 },
+    { "postId": 2, "quantity": 1 }
+  ]
+}
+
+# {
+#   "id": 4,
+#   "customer": "John Doe",
+#   "phone": "+123456789",
+#   "address": "123 Main Street",
+#   "total": 3900,
+#   "items": [
+#     {
+#       "postId": 1,
+#       "quantity": 2,
+#       "price": 1200
+#     },
+#     {
+#       "postId": 2,
+#       "quantity": 1,
+#       "price": 1500
+#     }
+#   ]
+# }
+
+### Delete Order
+DELETE http://localhost:8080/orders/1
+
+# {
+#   "message": "Order and items deleted"
+# }
+
+### Get Order by ID
+GET http://localhost:8080/orders/1
+
+# {
+#   "id": 1,
+#   "customer": "John Doe",
+#   "phone": "+123456789",
+#   "address": "123 Main Street",
+#   "total": 3900,
+#   "items": [
+#     {
+#       "id": 1,
+#       "orderId": 1,
+#       "postId": 1,
+#       "quantity": 2,
+#       "price": 1200
+#     },
+#     {
+#       "id": 2,
+#       "orderId": 1,
+#       "postId": 2,
+#       "quantity": 1,
+#       "price": 1500
+#     }
+#   ]
+# }
+
+### List Orders
+GET http://localhost:8080/orders
+
+# [
+#   {
+#     "id": 1,
+#     "customer": "John Doe",
+#     "phone": "+123456789",
+#     "address": "123 Main Street",
+#     "total": 3900,
+#     "items": [
+#       {
+#         "id": 1,
+#         "orderId": 1,
+#         "postId": 1,
+#         "quantity": 2,
+#         "price": 1200
+#       },
+#       {
+#         "id": 2,
+#         "orderId": 1,
+#         "postId": 2,
+#         "quantity": 1,
+#         "price": 1500
+#       }
+#     ]
+#   }
+# ]

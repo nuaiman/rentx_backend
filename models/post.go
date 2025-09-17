@@ -1,0 +1,199 @@
+package models
+
+import (
+	"database/sql"
+	"errors"
+	"rentx/db"
+)
+
+type Post struct {
+	Id           int64    `json:"id"`
+	UserId       int64    `json:"userId"`
+	CategoryId   int64    `json:"categoryId" binding:"required"`
+	Name         string   `json:"name" binding:"required"`
+	Address      string   `json:"address" binding:"required"`
+	Description  string   `json:"description" binding:"required"`
+	DailyPrice   float64  `json:"dailyPrice"`
+	WeeklyPrice  float64  `json:"weeklyPrice"`
+	MonthlyPrice float64  `json:"monthlyPrice"`
+	ImageUrls    []string `json:"imageUrls"`
+	DateTime     string   `json:"dateTime"`
+}
+
+// Save inserts a new post with images
+func (p *Post) Save() error {
+	// Insert post
+	res, err := db.DB.Exec(`
+		INSERT INTO posts 
+		(userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		p.UserId, p.CategoryId, p.Name, p.Address, p.Description, p.DailyPrice, p.WeeklyPrice, p.MonthlyPrice)
+	if err != nil {
+		return err
+	}
+	p.Id, _ = res.LastInsertId()
+
+	// Insert images if any
+	if len(p.ImageUrls) > 0 {
+		tx, err := db.DB.Begin()
+		if err != nil {
+			return err
+		}
+
+		stmt, err := tx.Prepare(`
+			INSERT INTO post_images (postId, imageUrl, position) VALUES (?, ?, ?)`)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		defer stmt.Close()
+
+		for i, url := range p.ImageUrls {
+			if url == "" {
+				continue
+			}
+			if _, err := stmt.Exec(p.Id, url, i); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Update updates a post (owner or admin)
+func (p *Post) Update(userId int64, userRole string) error {
+	query := `
+		UPDATE posts SET categoryId=?, name=?, address=?, description=?, dailyPrice=?, weeklyPrice=?, monthlyPrice=?
+		WHERE id=?`
+	args := []interface{}{p.CategoryId, p.Name, p.Address, p.Description, p.DailyPrice, p.WeeklyPrice, p.MonthlyPrice, p.Id}
+
+	if userRole != "admin" && userRole != "superadmin" {
+		query += " AND userId=?"
+		args = append(args, userId)
+	}
+
+	res, err := db.DB.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+	ra, _ := res.RowsAffected()
+	if ra == 0 {
+		return errors.New("unauthorized or post not found")
+	}
+
+	_, err = db.DB.Exec("DELETE FROM post_images WHERE postId=?", p.Id)
+	if err != nil {
+		return err
+	}
+
+	for i, url := range p.ImageUrls {
+		if url == "" {
+			continue
+		}
+		_, err := db.DB.Exec(`
+			INSERT INTO post_images (postId, imageUrl, position)
+			VALUES (?, ?, ?)`, p.Id, url, i)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Delete removes a post (owner or admin)
+func (p *Post) Delete(userId int64, userRole string) error {
+	query := "DELETE FROM posts WHERE id=?"
+	args := []interface{}{p.Id}
+
+	if userRole != "admin" && userRole != "superadmin" {
+		query += " AND userId=?"
+		args = append(args, userId)
+	}
+
+	res, err := db.DB.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("unauthorized or post not found")
+	}
+	return nil
+}
+
+// GetPostByID fetches a single post with images
+func GetPostByID(id int64) (*Post, error) {
+	row := db.DB.QueryRow(`
+		SELECT id, userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice, dateTime
+		FROM posts WHERE id=?`, id)
+	var p Post
+	err := row.Scan(&p.Id, &p.UserId, &p.CategoryId, &p.Name, &p.Address, &p.Description, &p.DailyPrice, &p.WeeklyPrice, &p.MonthlyPrice, &p.DateTime)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("post not found")
+		}
+		return nil, err
+	}
+
+	rows, err := db.DB.Query(`SELECT imageUrl FROM post_images WHERE postId=? ORDER BY position ASC`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	p.ImageUrls = []string{}
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			return nil, err
+		}
+		p.ImageUrls = append(p.ImageUrls, url)
+	}
+
+	return &p, nil
+}
+
+// ListPosts fetches all posts with images
+func ListPosts() ([]Post, error) {
+	rows, err := db.DB.Query(`
+		SELECT id, userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice, dateTime 
+		FROM posts`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := []Post{}
+	for rows.Next() {
+		var p Post
+		if err := rows.Scan(&p.Id, &p.UserId, &p.CategoryId, &p.Name, &p.Address, &p.Description, &p.DailyPrice, &p.WeeklyPrice, &p.MonthlyPrice, &p.DateTime); err != nil {
+			return nil, err
+		}
+
+		imageRows, err := db.DB.Query(`SELECT imageUrl FROM post_images WHERE postId=? ORDER BY position ASC`, p.Id)
+		if err != nil {
+			return nil, err
+		}
+		defer imageRows.Close()
+
+		p.ImageUrls = []string{}
+		for imageRows.Next() {
+			var url string
+			if err := imageRows.Scan(&url); err != nil {
+				return nil, err
+			}
+			p.ImageUrls = append(p.ImageUrls, url)
+		}
+		defer imageRows.Close()
+		posts = append(posts, p)
+	}
+
+	return posts, nil
+}
