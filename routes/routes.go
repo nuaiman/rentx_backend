@@ -8,8 +8,9 @@ import (
 
 func RegisterRoutes(server *gin.Engine) {
 	// authentication routes
-	server.POST("/signup", signup)
-	server.POST("/login", login)
+	server.POST("/auth-email", authHandler)
+	// server.POST("/signup", signup)
+	// server.POST("/login", login)
 	// categories
 	server.POST("/category", middlewares.Authenticate, createCategory)
 	server.PUT("/category/:id", middlewares.Authenticate, updateCategory)

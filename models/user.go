@@ -39,24 +39,11 @@ func (u *User) Save() error {
 	return nil
 }
 
-// ValidateCredentials checks email and password
-func (u *User) ValidateCredentials() error {
+func (u *User) LoadByEmail() error {
 	query := "SELECT id, name, email, phone, password, image, role FROM users WHERE email = ?"
-	row := db.DB.QueryRow(query, u.Email)
-
-	var dbPass string
-	err := row.Scan(&u.Id, &u.Name, &u.Email, &u.Phone, &dbPass, &u.Image, &u.Role)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return errors.New("user not found")
-		}
-		return err
-	}
-
-	if !utils.ComparePasswords(u.Password, dbPass) {
-		return errors.New("invalid credentials")
-	}
-	return nil
+	return db.DB.QueryRow(query, u.Email).Scan(
+		&u.Id, &u.Name, &u.Email, &u.Phone, &u.Password, &u.Image, &u.Role,
+	)
 }
 
 // GetUserByID fetches a user by ID
