@@ -94,6 +94,16 @@ func createTables() error {
 			dateTime DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 
+		// Refresh-Token table
+		`CREATE TABLE IF NOT EXISTS refreshTokens (
+    		id INTEGER PRIMARY KEY AUTOINCREMENT,
+    		userId INTEGER NOT NULL,
+    		token TEXT NOT NULL UNIQUE,
+    		expiresAt DATETIME NOT NULL,
+			dateTime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    		FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+		)`,
+
 		// Categories table
 		`CREATE TABLE IF NOT EXISTS categories (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

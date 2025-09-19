@@ -16,7 +16,7 @@ func Authenticate(c *gin.Context) {
 	}
 
 	token := strings.TrimPrefix(authHeader, "Bearer ")
-	id, email, role, err := utils.VerifyToken(token)
+	id, email, phone, role, err := utils.VerifyToken(token)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 		return
@@ -24,6 +24,7 @@ func Authenticate(c *gin.Context) {
 
 	c.Set("userId", id)
 	c.Set("email", email)
+	c.Set("phone", phone)
 	c.Set("role", role)
 
 	c.Next()

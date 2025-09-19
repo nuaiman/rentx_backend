@@ -10,9 +10,9 @@ import (
 type User struct {
 	Id       int64  `json:"id"`
 	Name     string `json:"name"`
-	Email    string `json:"email" binding:"required"`
+	Email    string `json:"email"`
 	Phone    string `json:"phone"`
-	Password string `json:"password" binding:"required"`
+	Password string `json:"password"`
 	Image    string `json:"image"`
 	Role     string `json:"role"` // 'user' | 'admin' | 'superadmin'
 	DateTime string `json:"dateTime"`
@@ -42,6 +42,13 @@ func (u *User) Save() error {
 func (u *User) LoadByEmail() error {
 	query := "SELECT id, name, email, phone, password, image, role FROM users WHERE email = ?"
 	return db.DB.QueryRow(query, u.Email).Scan(
+		&u.Id, &u.Name, &u.Email, &u.Phone, &u.Password, &u.Image, &u.Role,
+	)
+}
+
+func (u *User) LoadByPhone() error {
+	query := "SELECT id, name, email, phone, password, image, role FROM users WHERE phone = ?"
+	return db.DB.QueryRow(query, u.Phone).Scan(
 		&u.Id, &u.Name, &u.Email, &u.Phone, &u.Password, &u.Image, &u.Role,
 	)
 }
