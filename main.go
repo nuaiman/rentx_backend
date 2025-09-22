@@ -1,15 +1,21 @@
 package main
 
 import (
+	"fmt"
 	"rentx/db"
 	"rentx/routes"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		fmt.Println("⚠️  No .env file found, relying on environment variables")
+	}
+
 	db.InitDB()
 	defer db.CloseDB()
 	server := gin.Default()

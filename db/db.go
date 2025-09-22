@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
@@ -38,9 +39,7 @@ func InitDB() {
 		log.Fatal("Database table creation failed: ", err)
 	}
 
-	if err := createDefaultSuperAdmin(); err != nil {
-		log.Fatal("Could not create default superadmin: ", err)
-	}
+	createDefaultSuperAdmin()
 
 	fmt.Println("✅ Database initialized, tables created and superadmin ensured!")
 }
@@ -55,29 +54,40 @@ func CloseDB() {
 	}
 }
 
-func createDefaultSuperAdmin() error {
+func createDefaultSuperAdmin() {
 	var count int
 	err := DB.QueryRow("SELECT COUNT(*) FROM users WHERE role = 'superadmin'").Scan(&count)
 	if err != nil {
-		return err
+		log.Fatalf("❌ Failed to check superadmin count: %v", err)
 	}
+
 	if count == 0 {
-		hashed, _ := bcrypt.GenerateFromPassword([]byte("supersecret"), bcrypt.DefaultCost)
+		name := os.Getenv("SUPERADMIN_NAME")
+		email := os.Getenv("SUPERADMIN_EMAIL")
+		phone := os.Getenv("SUPERADMIN_PHONE")
+		password := os.Getenv("SUPERADMIN_PASSWORD")
+
+		// fail hard if env variables missing
+		if name == "" || email == "" || phone == "" || password == "" {
+			log.Fatal("❌ SUPERADMIN environment variables not set. Exiting...")
+		}
+
+		hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			log.Fatalf("❌ Failed to hash password: %v", err)
+		}
+
 		_, err = DB.Exec(`
-			INSERT INTO users (name, email, phone, password, image, role)
-			VALUES (?, ?, ?, ?, ?, 'superadmin')`,
-			"Super Admin",              // name
-			"superadmin@server.online", // email
-			"0000000000",               // phone
-			string(hashed),             // password
-			"",                         // image
+            INSERT INTO users (name, email, phone, password, image, role)
+            VALUES (?, ?, ?, ?, ?, 'superadmin')`,
+			name, email, phone, string(hashed), "",
 		)
 		if err != nil {
-			return err
+			log.Fatalf("❌ Failed to insert default superadmin: %v", err)
 		}
-		fmt.Println("Default superadmin user created.")
+
+		fmt.Println("✅ Default superadmin user created from environment variables.")
 	}
-	return nil
 }
 
 func createTables() error {

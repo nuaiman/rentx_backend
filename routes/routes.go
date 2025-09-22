@@ -35,4 +35,5 @@ func RegisterRoutes(server *gin.Engine) {
 	server.POST("/reviews", middlewares.Authenticate, createReview)
 	server.GET("/reviews/:postId", listReviewsByPost)
 	server.DELETE("/reviews/:id", middlewares.Authenticate, deleteReview)
+
 }
