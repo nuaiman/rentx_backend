@@ -12,8 +12,6 @@ func RegisterRoutes(server *gin.Engine) {
 	server.POST("/auth-email", emailAuthHandler)
 	server.POST("/auth-phone", phoneAuthHandler)
 	server.POST("/auth-oauth", oauthAuthHandler)
-	// server.POST("/signup", signup)
-	// server.POST("/login", login)
 	// categories
 	server.POST("/category", middlewares.Authenticate, createCategory)
 	server.PUT("/category/:id", middlewares.Authenticate, updateCategory)
@@ -26,6 +24,8 @@ func RegisterRoutes(server *gin.Engine) {
 	server.DELETE("/posts/:id", middlewares.Authenticate, deletePost)
 	server.GET("/posts", listPosts)
 	server.GET("/posts/:id", getPostByID)
+	server.GET("/posts/pending", middlewares.Authenticate, middlewares.RequireRole("admin", "superadmin"), listPendingPosts)
+	server.PUT("/posts/:id/status", middlewares.Authenticate, middlewares.RequireRole("admin", "superadmin"), updatePostStatus)
 	// orders
 	server.POST("/orders", createOrder)
 	server.DELETE("/orders/:id", deleteOrder)

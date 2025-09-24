@@ -17,17 +17,20 @@ type Post struct {
 	WeeklyPrice  float64  `json:"weeklyPrice"`
 	MonthlyPrice float64  `json:"monthlyPrice"`
 	ImageUrls    []string `json:"imageUrls"`
+	Status       string   `json:"status"`
 	DateTime     string   `json:"dateTime"`
 }
 
 // Save inserts a new post with images
 func (p *Post) Save() error {
+	// Ensure new posts have 'pending' status by default
+	p.Status = "pending"
 	// Insert post
 	res, err := db.DB.Exec(`
 		INSERT INTO posts 
-		(userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		p.UserId, p.CategoryId, p.Name, p.Address, p.Description, p.DailyPrice, p.WeeklyPrice, p.MonthlyPrice)
+		(userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice, status)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		p.UserId, p.CategoryId, p.Name, p.Address, p.Description, p.DailyPrice, p.WeeklyPrice, p.MonthlyPrice, p.Status)
 	if err != nil {
 		return err
 	}
@@ -69,9 +72,9 @@ func (p *Post) Save() error {
 // Update updates a post (owner or admin)
 func (p *Post) Update(userId int64, userRole string) error {
 	query := `
-		UPDATE posts SET categoryId=?, name=?, address=?, description=?, dailyPrice=?, weeklyPrice=?, monthlyPrice=?
+		UPDATE posts SET categoryId=?, name=?, address=?, description=?, dailyPrice=?, weeklyPrice=?, monthlyPrice=?, status=?
 		WHERE id=?`
-	args := []interface{}{p.CategoryId, p.Name, p.Address, p.Description, p.DailyPrice, p.WeeklyPrice, p.MonthlyPrice, p.Id}
+	args := []interface{}{p.CategoryId, p.Name, p.Address, p.Description, p.DailyPrice, p.WeeklyPrice, p.MonthlyPrice, p.Status, p.Id}
 
 	if userRole != "admin" && userRole != "superadmin" {
 		query += " AND userId=?"
@@ -131,10 +134,10 @@ func (p *Post) Delete(userId int64, userRole string) error {
 // GetPostByID fetches a single post with images
 func GetPostByID(id int64) (*Post, error) {
 	row := db.DB.QueryRow(`
-		SELECT id, userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice, dateTime
-		FROM posts WHERE id=?`, id)
+		SELECT id, userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice, status, dateTime
+		FROM posts WHERE id=? AND status='approved'`, id)
 	var p Post
-	err := row.Scan(&p.Id, &p.UserId, &p.CategoryId, &p.Name, &p.Address, &p.Description, &p.DailyPrice, &p.WeeklyPrice, &p.MonthlyPrice, &p.DateTime)
+	err := row.Scan(&p.Id, &p.UserId, &p.CategoryId, &p.Name, &p.Address, &p.Description, &p.DailyPrice, &p.WeeklyPrice, &p.MonthlyPrice, &p.Status, &p.DateTime)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("post not found")
@@ -163,8 +166,8 @@ func GetPostByID(id int64) (*Post, error) {
 // ListPosts fetches all posts with images
 func ListPosts() ([]Post, error) {
 	rows, err := db.DB.Query(`
-		SELECT id, userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice, dateTime 
-		FROM posts`)
+		SELECT id, userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice, status, dateTime 
+		FROM posts WHERE status='approved'`)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +176,7 @@ func ListPosts() ([]Post, error) {
 	posts := []Post{}
 	for rows.Next() {
 		var p Post
-		if err := rows.Scan(&p.Id, &p.UserId, &p.CategoryId, &p.Name, &p.Address, &p.Description, &p.DailyPrice, &p.WeeklyPrice, &p.MonthlyPrice, &p.DateTime); err != nil {
+		if err := rows.Scan(&p.Id, &p.UserId, &p.CategoryId, &p.Name, &p.Address, &p.Description, &p.DailyPrice, &p.WeeklyPrice, &p.MonthlyPrice, &p.Status, &p.DateTime); err != nil {
 			return nil, err
 		}
 
@@ -196,4 +199,57 @@ func ListPosts() ([]Post, error) {
 	}
 
 	return posts, nil
+}
+
+// ListPendingPosts returns all posts with status "pending"
+func ListPendingPosts() ([]Post, error) {
+	rows, err := db.DB.Query(`
+        SELECT id, userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice, status, dateTime 
+        FROM posts WHERE status='pending'`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var p Post
+		if err := rows.Scan(&p.Id, &p.UserId, &p.CategoryId, &p.Name, &p.Address, &p.Description,
+			&p.DailyPrice, &p.WeeklyPrice, &p.MonthlyPrice, &p.Status, &p.DateTime); err != nil {
+			return nil, err
+		}
+
+		// fetch images
+		imageRows, err := db.DB.Query(`SELECT imageUrl FROM post_images WHERE postId=? ORDER BY position ASC`, p.Id)
+		if err != nil {
+			return nil, err
+		}
+		defer imageRows.Close()
+
+		p.ImageUrls = []string{}
+		for imageRows.Next() {
+			var url string
+			if err := imageRows.Scan(&url); err != nil {
+				return nil, err
+			}
+			p.ImageUrls = append(p.ImageUrls, url)
+		}
+
+		posts = append(posts, p)
+	}
+
+	return posts, nil
+}
+
+// UpdateStatus updates the status of a post (approved/rejected)
+func UpdateStatus(postID int64, status string) error {
+	res, err := db.DB.Exec(`UPDATE posts SET status=? WHERE id=?`, status, postID)
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("post not found")
+	}
+	return nil
 }

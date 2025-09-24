@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,13 +16,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 		}
 		role := roleVal.(string)
 
-		allowed := false
-		for _, r := range roles {
-			if role == r {
-				allowed = true
-				break
-			}
-		}
+		allowed := slices.Contains(roles, role)
 		if !allowed {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "not allowed"})
 			return

@@ -139,3 +139,46 @@ func listPosts(c *gin.Context) {
 
 	c.JSON(http.StatusOK, posts)
 }
+
+// ----------------- LIST PENDING POSTS -----------------
+func listPendingPosts(c *gin.Context) {
+	posts, err := models.ListPendingPosts()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch posts", "error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, posts)
+}
+
+// ----------------- UPDATE POST STATUS -----------------
+func updatePostStatus(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid post ID"})
+		return
+	}
+
+	var body struct {
+		Status string `json:"status" binding:"required"` // "approved" or "rejected"
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid input", "error": err.Error()})
+		return
+	}
+
+	if body.Status != "approved" && body.Status != "rejected" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Status must be 'approved' or 'rejected'"})
+		return
+	}
+
+	if err := models.UpdateStatus(id, body.Status); err != nil {
+		if err.Error() == "post not found" {
+			c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not update status", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Post status updated successfully"})
+}

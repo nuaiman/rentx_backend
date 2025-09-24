@@ -132,6 +132,7 @@ func createTables() error {
 			dailyPrice REAL NOT NULL,
 			weeklyPrice REAL NOT NULL,
 			monthlyPrice REAL NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
 			dateTime DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
 			FOREIGN KEY (categoryId) REFERENCES categories (id) ON DELETE CASCADE
