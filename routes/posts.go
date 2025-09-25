@@ -50,6 +50,7 @@ func uploadPostImages(c *gin.Context) {
 
 // ----------------- CREATE POST -----------------
 func createPost(c *gin.Context) {
+	role := c.GetString("role")
 	var p models.Post
 	if err := c.ShouldBindJSON(&p); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid input", "error": err.Error()})
@@ -58,7 +59,7 @@ func createPost(c *gin.Context) {
 
 	p.UserId = c.GetInt64("userId") // from auth middleware
 
-	if err := p.Save(); err != nil {
+	if err := p.Save(role); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Could not save post", "error": err.Error()})
 		return
 	}
@@ -82,9 +83,9 @@ func updatePost(c *gin.Context) {
 
 	p.Id = id
 	userId := c.GetInt64("userId")
-	userRole := c.GetString("userRole")
+	role := c.GetString("role")
 
-	if err := p.Update(userId, userRole); err != nil {
+	if err := p.Update(userId, role); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
 		return
 	}
@@ -102,9 +103,9 @@ func deletePost(c *gin.Context) {
 
 	p := models.Post{Id: id}
 	userId := c.GetInt64("userId")
-	userRole := c.GetString("userRole")
+	role := c.GetString("role")
 
-	if err := p.Delete(userId, userRole); err != nil {
+	if err := p.Delete(userId, role); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
 		return
 	}
@@ -129,9 +130,9 @@ func getPostByID(c *gin.Context) {
 	c.JSON(http.StatusOK, post)
 }
 
-// ----------------- LIST ALL POSTS -----------------
-func listPosts(c *gin.Context) {
-	posts, err := models.ListPosts()
+// ----------------- LIST Approved POSTS -----------------
+func listApprovedPosts(c *gin.Context) {
+	posts, err := models.ListApprovedPosts()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch posts", "error": err.Error()})
 		return
@@ -171,14 +172,38 @@ func updatePostStatus(c *gin.Context) {
 		return
 	}
 
-	if err := models.UpdateStatus(id, body.Status); err != nil {
+	// 1️⃣ Fetch current status
+	currentStatus, err := models.GetPostStatus(id)
+	if err != nil {
 		if err.Error() == "post not found" {
-			c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			c.JSON(http.StatusNotFound, gin.H{"message": "Post not found"})
 			return
 		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch post status", "error": err.Error()})
+		return
+	}
+
+	// 2️⃣ Check if already reviewed
+	if currentStatus == "approved" || currentStatus == "rejected" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Post already reviewed by an admin"})
+		return
+	}
+
+	// 3️⃣ Update status
+	if err := models.UpdateStatus(id, body.Status); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not update status", "error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Post status updated successfully"})
 }
+
+// // ----------------- LIST PENDING POSTS -----------------
+// func listAllPosts(c *gin.Context) {
+// 	posts, err := models.ListAllPosts()
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch posts", "error": err.Error()})
+// 		return
+// 	}
+// 	c.JSON(http.StatusOK, posts)
+// }

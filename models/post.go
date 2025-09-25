@@ -22,9 +22,13 @@ type Post struct {
 }
 
 // Save inserts a new post with images
-func (p *Post) Save() error {
-	// Ensure new posts have 'pending' status by default
-	p.Status = "pending"
+func (p *Post) Save(role string) error {
+	// Ensure new posts have 'pending' status by default for normal users. Else, auto approvede
+	if role == "admin" || role == "superadmin" {
+		p.Status = "approved"
+	} else {
+		p.Status = "pending"
+	}
 	// Insert post
 	res, err := db.DB.Exec(`
 		INSERT INTO posts 
@@ -70,13 +74,13 @@ func (p *Post) Save() error {
 }
 
 // Update updates a post (owner or admin)
-func (p *Post) Update(userId int64, userRole string) error {
+func (p *Post) Update(userId int64, role string) error {
 	query := `
 		UPDATE posts SET categoryId=?, name=?, address=?, description=?, dailyPrice=?, weeklyPrice=?, monthlyPrice=?, status=?
 		WHERE id=?`
 	args := []interface{}{p.CategoryId, p.Name, p.Address, p.Description, p.DailyPrice, p.WeeklyPrice, p.MonthlyPrice, p.Status, p.Id}
 
-	if userRole != "admin" && userRole != "superadmin" {
+	if role != "admin" && role != "superadmin" {
 		query += " AND userId=?"
 		args = append(args, userId)
 	}
@@ -111,11 +115,12 @@ func (p *Post) Update(userId int64, userRole string) error {
 }
 
 // Delete removes a post (owner or admin)
-func (p *Post) Delete(userId int64, userRole string) error {
+func (p *Post) Delete(userId int64, role string) error {
 	query := "DELETE FROM posts WHERE id=?"
 	args := []interface{}{p.Id}
 
-	if userRole != "admin" && userRole != "superadmin" {
+	// Only restrict to owner if not admin/superadmin
+	if role != "admin" && role != "superadmin" {
 		query += " AND userId=?"
 		args = append(args, userId)
 	}
@@ -163,8 +168,8 @@ func GetPostByID(id int64) (*Post, error) {
 	return &p, nil
 }
 
-// ListPosts fetches all posts with images
-func ListPosts() ([]Post, error) {
+// ListApprovedPosts fetches all approved posts with images
+func ListApprovedPosts() ([]Post, error) {
 	rows, err := db.DB.Query(`
 		SELECT id, userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice, status, dateTime 
 		FROM posts WHERE status='approved'`)
@@ -253,3 +258,51 @@ func UpdateStatus(postID int64, status string) error {
 	}
 	return nil
 }
+
+// GetPostStatus returns the current status of a post
+func GetPostStatus(postID int64) (string, error) {
+	var status string
+	err := db.DB.QueryRow(`SELECT status FROM posts WHERE id=?`, postID).Scan(&status)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", errors.New("post not found")
+		}
+		return "", err
+	}
+	return status, nil
+}
+
+// ListPendingPosts returns all posts with status "pending"
+// func ListAllPosts() ([]Post, error) {
+// 	rows, err := db.DB.Query(`
+//         SELECT id, userId, categoryId, name, address, description, dailyPrice, weeklyPrice, monthlyPrice, status, dateTime
+//         FROM posts WHERE status='pending'`)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
+// 	var posts []Post
+// 	for rows.Next() {
+// 		var p Post
+// 		if err := rows.Scan(&p.Id, &p.UserId, &p.CategoryId, &p.Name, &p.Address, &p.Description,
+// 			&p.DailyPrice, &p.WeeklyPrice, &p.MonthlyPrice, &p.Status, &p.DateTime); err != nil {
+// 			return nil, err
+// 		}
+// 		// fetch images
+// 		imageRows, err := db.DB.Query(`SELECT imageUrl FROM post_images WHERE postId=? ORDER BY position ASC`, p.Id)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		defer imageRows.Close()
+// 		p.ImageUrls = []string{}
+// 		for imageRows.Next() {
+// 			var url string
+// 			if err := imageRows.Scan(&url); err != nil {
+// 				return nil, err
+// 			}
+// 			p.ImageUrls = append(p.ImageUrls, url)
+// 		}
+// 		posts = append(posts, p)
+// 	}
+// 	return posts, nil
+// }
