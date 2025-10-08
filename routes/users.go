@@ -146,23 +146,6 @@ func emailAuthHandler(ctx *gin.Context) {
 	})
 }
 
-// func googleAuthHandler(ctx *gin.Context) {
-// 	var incoming struct {
-// 		IDToken     string `json:"idToken"`
-// 		AccessToken string `json:"accessToken"`
-// 	}
-// 	if err := ctx.ShouldBindJSON(&incoming); err != nil || incoming.IDToken == "" {
-// 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "idToken is required"})
-// 		return
-// 	}
-// 	// Just print them for now
-// 	fmt.Println("ID Token: ", incoming.IDToken)
-// 	fmt.Println("Access Token: ", incoming.AccessToken)
-// 	ctx.JSON(http.StatusOK, gin.H{
-// 		"message": "Tokens received",
-// 	})
-// }
-
 func googleAuthHandler(ctx *gin.Context) {
 	fmt.Println("=== Google Auth Handler Invoked ===")
 
@@ -365,74 +348,6 @@ func googleAuthHandler(ctx *gin.Context) {
 // 		"phone":        user.Phone,
 // 		"token":        token,              // short-lived JWT
 // 		"refreshToken": refreshToken.Token, // long-lived token
-// 		"role":         user.Role,
-// 	})
-// }
-
-// func googleAuthHandler(ctx *gin.Context) {
-// 	var incomingUser struct {
-// 		Email string `json:"email"`
-// 	}
-// 	if err := ctx.ShouldBindJSON(&incomingUser); err != nil || incomingUser.Email == "" {
-// 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Email is required"})
-// 		return
-// 	}
-
-// 	// Step 1: Check if user exists
-// 	existingUser := &models.User{Email: incomingUser.Email}
-// 	err := existingUser.LoadByEmail()
-
-// 	var user models.User
-
-// 	if err != nil {
-// 		if errors.Is(err, sql.ErrNoRows) {
-// 			// User doesn't exist → create
-// 			newUser := models.User{
-// 				Email: incomingUser.Email,
-// 				Role:  "user", // default role
-// 			}
-// 			if err := newUser.Save(); err != nil {
-// 				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create user."})
-// 				return
-// 			}
-// 			user = newUser
-// 		} else {
-// 			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Database error."})
-// 			return
-// 		}
-// 	} else {
-// 		// User exists → use it
-// 		user = *existingUser
-// 	}
-
-// 	// Step 2: Generate access token
-// 	token, err := utils.GenerateToken(user.Id, user.Email, "", user.Role)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate token."})
-// 		return
-// 	}
-
-// 	// Step 3: Generate refresh token (30 days)
-// 	refreshToken, err := models.NewRefreshToken(user.Id, 30)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Could not create refresh token."})
-// 		return
-// 	}
-// 	if err := refreshToken.Save(); err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Could not save refresh token."})
-// 		return
-// 	}
-
-// 	// Step 4: Return full user info
-// 	ctx.JSON(http.StatusOK, gin.H{
-// 		"message":      "Authenticated successfully.",
-// 		"id":           user.Id,
-// 		"name":         user.Name,
-// 		"image":        user.Image,
-// 		"email":        user.Email,
-// 		"phone":        user.Phone,
-// 		"token":        token,
-// 		"refreshToken": refreshToken.Token,
 // 		"role":         user.Role,
 // 	})
 // }
