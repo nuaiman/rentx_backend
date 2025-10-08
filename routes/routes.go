@@ -10,8 +10,8 @@ func RegisterRoutes(server *gin.Engine) {
 	// authentication routes
 	server.POST("/refresh-token", refreshTokenHandler)
 	server.POST("/auth-email", emailAuthHandler)
-	server.POST("/auth-phone", phoneAuthHandler)
-	server.POST("/auth-oauth", oauthAuthHandler)
+	server.POST("/auth-google", googleAuthHandler)
+	// server.POST("/auth-phone", phoneAuthHandler)
 
 	// categories
 	server.POST("/category", middlewares.Authenticate, createCategory)
